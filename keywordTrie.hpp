@@ -67,7 +67,7 @@ struct Result {
 	explicit Result (const string_type &key, int id)
 		: keyword(key), id(id) {}
 	explicit Result (const result &res, int endPos)
-		: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+1),
+		: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+2),
 		  end(endPos) {}
 };
 

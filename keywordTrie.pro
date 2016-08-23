@@ -6,11 +6,7 @@ CONFIG -= qt
 
 SOURCES +=	main.cpp
 
-HEADERS += \
-    keywordTrie.hpp
-
-CONFIG += link_pkgconfig
-PKGCONFIG += libgvc
+HEADERS += keywordTrie.hpp
 
 QMAKE_CXXFLAGS += -std=c++11
 QMAKE_CXXFLAGS_RELEASE -= -O1

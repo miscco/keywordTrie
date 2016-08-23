@@ -81,6 +81,12 @@ public:
 	typedef Result<CharType> result;
 	typedef std::basic_string<CharType> string_type;
 
+private:
+	node				*root = nullptr;	/**< The root node */
+	std::vector<node*>	trieNodes;			/**< Container of the node pointers */
+	std::vector<result> keywords;			/**< Container of the result stubs */
+
+public:
 	/**
 	 * @brief trie Initializes the trie structure with its root node.
 	 */
@@ -179,10 +185,6 @@ public:
 	}
 
 private:
-	node				*root = nullptr;	/**< The root node */
-	std::vector<node*>	trieNodes;			/**< Container of the node pointers */
-	std::vector<result> keywords;			/**< Container of the result stubs */
-
 	/**
 	 * @brief addChild Add a child node to the trie
 	 * @param parrent The pointer to the parrent node of the new one.

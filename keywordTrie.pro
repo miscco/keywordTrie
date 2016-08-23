@@ -4,10 +4,10 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 
-SOURCES +=	main.cpp \
-				keywordTrie.cpp
+SOURCES +=	main.cpp
 
-HEADERS +=	keywordTrie.h
+HEADERS += \
+    keywordTrie.hpp
 
 CONFIG += link_pkgconfig
 PKGCONFIG += libgvc

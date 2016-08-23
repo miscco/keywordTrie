@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "keywordTrie.h"
+#include "keywordTrie.hpp"
 
 int main(int argc, char** argv)
 {
@@ -11,7 +11,8 @@ int main(int argc, char** argv)
 		"help",
 		"hey",
 		"we",
-		"her"
+		"her",
+		"hers"
 	};
 
 	keywordTrie::trie Trie;
@@ -21,13 +22,13 @@ int main(int argc, char** argv)
 	Trie.addString(test, true);
 	Trie.addStrings(strings);
 
-	auto results = Trie.parseText("ushers");
+	auto results = Trie.parseText("ushershe");
 	std::cout << "Results: " << results.size() << std::endl;
 	for (auto res : results) {
 		std::cout << "Key: " << res.keyword <<std::endl;
-		std::cout << "KeyID: " << res.keyID <<std::endl;
-		std::cout << "Position: ushers"<< std::endl;
-		std::cout << std::string(10+res.position, ' ')
+		std::cout << "KeyID: " << res.id <<std::endl;
+		std::cout << "Position: ushershe"<< std::endl;
+		std::cout << std::string(10+res.start, ' ')
 				  << std::string(res.keyword.size(), '^') <<std::endl;
 	}
 

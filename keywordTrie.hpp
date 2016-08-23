@@ -1,9 +1,77 @@
-#include "keywordTrie.h"
+#ifndef KEYWORDTRIE_H
+#define KEYWORDTRIE_H
+
+#include <gvc.h>
+#include <iostream>
+#include <fstream>
+#include <queue>
+#include <set>
+#include <stdexcept>
+#include <stdlib.h>
+#include <string>
+#include <vector>
 
 namespace keywordTrie {
 
 /**
- * @brief trie::trie Initialize the trie structure with its root node.
+ * @brief The node struct containing the information of a trie node.
+ */
+struct node {
+	int id			= -1;			/**< Keyword id */
+	int depth		= 0;			/**< Depth in the trie*/
+	const char c	= '\0';			/**< Character labelling the incoming edge */
+	node *parent	= nullptr;		/**< Parent node */
+	node *failure	= nullptr;		/**< Failure link */
+	std::vector<node*> children;	/**< Child nodes */
+
+	explicit node () {}
+	explicit node (int d, const char character, node *par, node *root)
+		: depth(d), c(character), parent(par), failure(root) {}
+};
+
+/**
+ * @brief The result struct storing the information about matches during a search
+ */
+struct result {
+	std::string keyword;			/**< The found keyword */
+	int			id;					/**< The id of the keyword in the keyword list*/
+	int			start;				/**< The starting position of the match */
+	int			end;				/**< The end position of the match */
+
+	explicit result (const std::string &key, int id)
+		: keyword(key), id(id) {}
+	explicit result (const result &res, int endPos)
+		: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+1),
+		  end(endPos) {}
+};
+
+/**
+ * @brief The trie class representing the keyword trie
+ */
+class trie
+{
+public:
+	trie();
+	~trie() {for (node* N : trieNodes) delete N;}
+
+	void addString (const std::string &key, bool addFailure /*= true*/);
+	void addStrings(const std::set<std::string> &keyList);
+	void addStrings(const std::vector<std::string> &keyList);
+	std::vector<result> parseText(std::string text);
+
+private:
+	node				*root = nullptr;	/**< The root node */
+	std::vector<node*>	trieNodes;			/**< Container of the node pointers */
+	std::vector<result> keywords;			/**< Container of the result stubs */
+
+	node *addChild		(node *current, const char character);
+	node *findChild		(node *current, const char character, bool addWord);
+	node *traverseFail	(node *current, const char character);
+	void addFailureLinks(void);
+};
+
+/**
+ * @brief trie::trie Initializes the trie structure with its root node.
  */
 trie::trie() {
 	root = new node();
@@ -14,7 +82,7 @@ trie::trie() {
 
 /**
  * @brief trie::addChild Add a child node to the trie
- * @param parrent The parrent node of the new one.
+ * @param parrent The pointer to the parrent node of the new one.
  * @param character The character on the edge to the new node.
  * @return The pointer to the newly created node.
  */
@@ -30,12 +98,9 @@ node* trie::addChild (node *parent, const char character) {
  */
 void trie::addFailureLinks() {
 	std::queue<node*> q;
-	node *temp;
-
 	q.push(root);
-
 	while (!q.empty()) {
-		temp = q.front();
+		node *temp = q.front();
 		for (node *child : temp->children) {
 			q.push(child);
 		}
@@ -43,7 +108,6 @@ void trie::addFailureLinks() {
 		 * never change.
 		 */
 		if (temp->failure->depth < temp->depth - 1) {
-			/* Parse the children of the parrents failure link */
 			for (node *failchild : temp->parent->failure->children) {
 				if (failchild->c == temp->c) {
 					temp->failure = failchild;
@@ -57,60 +121,62 @@ void trie::addFailureLinks() {
 /**
  * @brief trie::addString Insert a new keyword into the keyword trie.
  * @param key The new keyword to be inserted.
+ * @param addFailure Flag to signal whether the failure links should immediately
+ * be updated
  */
 void trie::addString (const std::string &key, bool addFailure = true) {
 	if (key.empty()) {
 		return;
 	}
-
-	keywords.push_back(key);
 	node *current = root;
 	for (const char character : key) {
 		current = findChild(current, character, true);
 	}
-	/* Check if the keyword was already found */
 	if (current->id != -1) {
 		throw std::runtime_error(
-					"Attempted to add two identical strings to keyword tree.");
+				"Attempted to add two identical strings to keyword tree.");
 	}
-	current->id = keywords.size()-1;
+	current->id = keywords.size();
+	keywords.push_back(result(key, keywords.size()));
 
-	if (addFailure)
+	if (addFailure) {
 		addFailureLinks();
+}
 }
 
 /**
- * @brief trie::addString Wrapper around addString(std::string) to add a set of
+ * @brief trie::addStrings Wrapper around addString(std::string) to add a set of
  * strings
- * @param keyList The set containing with the keys.
+ * @param keyList The set containing the keys.
  */
 void trie::addStrings(const std::set<std::string> &keyList) {
-	for (const std::string &key : keyList)
+	for (const std::string &key : keyList) {
 		addString(key, false);
+	}
 	addFailureLinks();
 }
 
 /**
- * @brief trie::addString Wrapper around addString(std::string) to add a vector
+ * @brief trie::addStrings Wrapper around addString(std::string) to add a vector
  * of strings
- * @param keyList The vector containing with the keys.
+ * @param keyList The vector containing the keys.
  */
 void trie::addStrings(const std::vector<std::string> &keyList) {
-	for (const std::string &key : keyList)
+	for (const std::string &key : keyList) {
 		addString(key, false);
+	}
 	addFailureLinks();
 }
 
 /**
  * @brief trie::findChild Searches for a child node with given character
- * @param current The current node
- * @param character The character that we are searching
+ * @param current The pointer to the current node
+ * @param character The character that is searched
  * @param addWord Flag sign to decide whether a new node should be added
- * @return The pointer to the matching node (after a failure link), root or
- * the newly created one
+ * @return The pointer to the matching node (possibly after failure links), root
+ * or the newly created one
  */
 node* trie::findChild (node *current, const char character, bool addWord) {
-	/* Traverse the children of the node to check for existing character. */
 	for (node *child : current->children) {
 		if (child->c == character) {
 			return child;
@@ -134,90 +200,21 @@ std::vector<result> trie::parseText (std::string text) {
 		return results;
 	}
 	node *current= root;
-	node *temp;
 	for (unsigned i=0; i < text.size(); i++) {
 		current = findChild(current, text.at(i), false);
 		if (current->id != -1) {
-			results.push_back(result(keywords.at(current->id),
-									 current->id,
-									 i - current->depth + 1));
+			results.push_back(result(keywords.at(current->id), i));
 		}
-		temp = current->failure;
 		/* Process the failure links for possible additional matches */
-		while (temp->depth > 0) {
+		node *temp = current->failure;
+		while (temp != root) {
 			if (temp->id != -1) {
-				results.push_back(result(keywords.at(temp->id),
-										 temp->id,
-										 i - temp->depth + 1));
+				results.push_back(result(keywords.at(temp->id), i));
 			}
 			temp = temp->failure;
 		}
 	}
 	return results;
-}
-
-void trie::printNodes() {
-	for (node* N : trieNodes) {
-		std::cout << "Id: " << N->id << std::endl;
-		std::cout << "Depth: " << N->depth << std::endl;
-		std::cout << "Character: " << N->c << std::endl;
-		std::cout << std::hex;
-		std::cout << "Pointer:  " << reinterpret_cast<uintptr_t>(N) << std::endl;
-		std::cout << "Parent:   " << reinterpret_cast<uintptr_t>(N->parent) << std::endl;
-		std::cout << "Failure:  " << reinterpret_cast<uintptr_t>(N->failure) << std::endl;
-		for (node* failN : N->children) {
-			std::cout << "Children: " << reinterpret_cast<uintptr_t>(failN) << std::endl;
-		}
-		std::cout << std::dec<< std::endl;
-	}
-}
-
-
-/**
- * @brief trie::printTrie
- */
-void trie::printTrie() {
-	std::string printout;
-	std::queue<node*> q;
-	node *temp;
-	unsigned thisnode = 0;
-	unsigned nodecount = 1;
-
-	printout += "digraph BST {\n";
-	printout += "\t node [fontname=\"Arial\", label = \"\"];\n";
-	q.push(root);
-	printout += "node" + std::to_string(thisnode) + ";\n";
-	while (!q.empty()) {
-		temp = q.front();
-		for (node *child : temp->children) {
-			q.push(child);
-			if (child->id != -1) {
-				printout += "node" + std::to_string(nodecount);
-				printout += "[label = " + keywords.at(child->id) + "];\n";
-			} else {
-				printout += "node" + std::to_string(nodecount) + ";\n";
-			}
-			printout += "node" + std::to_string(thisnode);
-			printout += " -> node" + std::to_string(nodecount);
-			printout += " [label = " + std::string(1, child->c) + ", labeldistance=2.5]\n";
-			nodecount++;
-		}
-		q.pop();
-		thisnode++;
-	}
-	printout += "}\n";
-
-	FILE* png = fopen("trie.png", "w");
-
-	GVC_t *gvc;
-	gvc = gvContext();
-	Agraph_t* g = agmemread(printout.c_str());
-	gvLayout(gvc, g, "dot");
-	gvRender(gvc, g, "png", png);
-	gvFreeLayout(gvc, g);
-	agclose(g);
-	gvFreeContext(gvc);
-	system("okular trie.png && rm trie.png");
 }
 
 /**
@@ -238,5 +235,5 @@ node* trie::traverseFail (node *current, const char character) {
 	}
 	return temp;
 }
-
 } // namespace keywordTrie
+#endif // KEYWORDTRIE_H

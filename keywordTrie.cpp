@@ -15,9 +15,10 @@ trie::trie() {
 /**
  * @brief trie::addChild Add a child node to the trie
  * @param parrent The parrent node of the new one.
- * @param character The character on the edge to the new node
+ * @param character The character on the edge to the new node.
+ * @return The pointer to the newly created node.
  */
-node* trie::addChild (node *parent, char &character) {
+node* trie::addChild (node *parent, const char character) {
 	trieNodes.push_back(new node(parent->depth+1, character, parent, root));
 	parent->children.push_back(trieNodes.back());
 	return trieNodes.back();
@@ -64,7 +65,7 @@ void trie::addString (const std::string &key, bool addFailure = true) {
 
 	keywords.push_back(key);
 	node *current = root;
-	for (char character : key) {
+	for (const char character : key) {
 		current = findChild(current, character, true);
 	}
 	/* Check if the keyword was already found */
@@ -105,8 +106,10 @@ void trie::addStrings(const std::vector<std::string> &keyList) {
  * @param current The current node
  * @param character The character that we are searching
  * @param addWord Flag sign to decide whether a new node should be added
+ * @return The pointer to the matching node (after a failure link), root or
+ * the newly created one
  */
-node* trie::findChild (node *current, char &character, bool addWord) {
+node* trie::findChild (node *current, const char character, bool addWord) {
 	/* Traverse the children of the node to check for existing character. */
 	for (node *child : current->children) {
 		if (child->c == character) {
@@ -116,7 +119,7 @@ node* trie::findChild (node *current, char &character, bool addWord) {
 	if (addWord) {
 		return addChild(current, character);
 	} else {
-		return current->failure;
+		return traverseFail(current, character);
 	}
 }
 
@@ -125,7 +128,7 @@ node* trie::findChild (node *current, char &character, bool addWord) {
  * @param text The text to be parsed
  * @return Returns a vector with all matches
  */
-std::vector<result> trie::parseText (std::string &text) {
+std::vector<result> trie::parseText (std::string text) {
 	std::vector<result> results;
 	if (text.empty()) {
 		return results;
@@ -133,13 +136,13 @@ std::vector<result> trie::parseText (std::string &text) {
 	node *current= root;
 	node *temp;
 	for (unsigned i=0; i < text.size(); i++) {
-		findChild(current, text.at(i), false);
+		current = findChild(current, text.at(i), false);
 		if (current->id != -1) {
 			results.push_back(result(keywords.at(current->id),
 									 current->id,
 									 i - current->depth + 1));
 		}
-		temp = temp->failure;
+		temp = current->failure;
 		/* Process the failure links for possible additional matches */
 		while (temp->depth > 0) {
 			if (temp->id != -1) {
@@ -152,6 +155,23 @@ std::vector<result> trie::parseText (std::string &text) {
 	}
 	return results;
 }
+
+void trie::printNodes() {
+	for (node* N : trieNodes) {
+		std::cout << "Id: " << N->id << std::endl;
+		std::cout << "Depth: " << N->depth << std::endl;
+		std::cout << "Character: " << N->c << std::endl;
+		std::cout << std::hex;
+		std::cout << "Pointer:  " << reinterpret_cast<uintptr_t>(N) << std::endl;
+		std::cout << "Parent:   " << reinterpret_cast<uintptr_t>(N->parent) << std::endl;
+		std::cout << "Failure:  " << reinterpret_cast<uintptr_t>(N->failure) << std::endl;
+		for (node* failN : N->children) {
+			std::cout << "Children: " << reinterpret_cast<uintptr_t>(failN) << std::endl;
+		}
+		std::cout << std::dec<< std::endl;
+	}
+}
+
 
 /**
  * @brief trie::printTrie
@@ -175,7 +195,7 @@ void trie::printTrie() {
 				printout += "node" + std::to_string(nodecount);
 				printout += "[label = " + keywords.at(child->id) + "];\n";
 			} else {
-			printout += "node" + std::to_string(nodecount) + ";\n";
+				printout += "node" + std::to_string(nodecount) + ";\n";
 			}
 			printout += "node" + std::to_string(thisnode);
 			printout += " -> node" + std::to_string(nodecount);
@@ -198,6 +218,25 @@ void trie::printTrie() {
 	agclose(g);
 	gvFreeContext(gvc);
 	system("okular trie.png && rm trie.png");
+}
+
+/**
+ * @brief trie::traverseFail traverse the failure links during a search
+ * @param current The original node
+ * @param character The character that is beeing searched
+ * @return The pointer to the matching node after a failure link or root
+ */
+node* trie::traverseFail (node *current, const char character) {
+	node *temp = current->failure;
+	while (temp != root) {
+		for (node *failchild : temp->children) {
+			if (failchild->c == character) {
+				return failchild;
+			}
+		}
+		temp = temp->failure;
+	}
+	return temp;
 }
 
 } // namespace keywordTrie

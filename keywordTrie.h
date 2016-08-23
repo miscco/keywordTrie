@@ -16,11 +16,11 @@ namespace keywordTrie {
 struct node {
   int id		= -1;			/* Keyword id */
   int depth		= 0;			/* Depth in the trie*/
-  char c		= '\0';			/* Character labelling incoming edge */
+  const char c	= '\0';			/* Character labelling incoming edge */
   node *parent  = nullptr;		/* Parent node */
   node *failure = nullptr;		/* Failure link */
   std::vector<node*> children;	/* Child nodes */
-  explicit node (int d, char character, node *par, node *root)
+  explicit node (int d, const char character, node *par, node *root)
 	  : depth(d), c(character), parent(par), failure(root)
   {id = -1; children = std::vector<node*> ();}
   explicit node () {}
@@ -31,7 +31,7 @@ struct result {
 	int			keyID;
 	int			position;
 
-	explicit result (std::string &key, int id, int pos)
+	explicit result (const std::string &key, int id, int pos)
 		:keyword(key), keyID(id), position(pos) {}
 };
 
@@ -41,11 +41,11 @@ public:
 	trie();
 	~trie() {for (node* N : trieNodes) delete N;}
 
-	void addString(const std::string &key, bool addFailure /*= true*/);
+	void addString (const std::string &key, bool addFailure /*= true*/);
 	void addStrings(const std::set<std::string> &keyList);
 	void addStrings(const std::vector<std::string> &keyList);
 
-	std::vector<result> parseText(std::string &text);
+	std::vector<result> parseText(std::string text);
 	void printTrie (void);
 
 private:
@@ -53,9 +53,11 @@ private:
 	std::vector<node*>		 trieNodes;
 	std::vector<std::string> keywords;
 
-	node *addChild		(node *current, char &character);
-	node *findChild		(node *current, char &character, bool addWord);
-	void addFailureLinks();
+	node *addChild		(node *current, const char character);
+	node *findChild		(node *current, const char character, bool addWord);
+	node *traverseFail	(node *current, const char character);
+	void printNodes		(void);
+	void addFailureLinks(void);
 };
 
 } // namespace keywordTrie

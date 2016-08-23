@@ -43,6 +43,7 @@ struct Node {
 	const CharType c= '\0';			/**< Character labelling the incoming edge */
 	node *parent	= nullptr;		/**< Parent node */
 	node *failure	= nullptr;		/**< Failure link */
+	node *output	= nullptr;		/**< Output link */
 	std::vector<node*> children;	/**< Child nodes */
 
 	explicit Node () {}
@@ -92,8 +93,9 @@ public:
 	 */
 	basic_trie() {
 		root = new node();
+		root->parent  = root;
 		root->failure = root;
-		root->parent = root;
+		root->output  = root;
 		trieNodes.push_back(root);
 	}
 	/**
@@ -172,13 +174,11 @@ public:
 			if (current->id != -1) {
 				results.push_back(result(keywords.at(current->id), i));
 			}
-			/* Process the failure links for possible additional matches */
-			node *temp = current->failure;
+			/* Process the output links for possible additional matches */
+			node *temp = current->output;
 			while (temp != root) {
-				if (temp->id != -1) {
-					results.push_back(result(keywords.at(temp->id), i));
-				}
-				temp = temp->failure;
+				results.push_back(result(keywords.at(temp->id), i));
+				temp = temp->output;
 			}
 		}
 		return results;
@@ -259,6 +259,16 @@ private:
 					}
 				}
 			}
+
+			/* Process the failure links for possible additional matches */
+			node *out = temp->failure;
+			while (out != root) {
+				if (out->id != -1) {
+					break;
+				}
+				out = out->failure;
+			}
+			temp->output = out;
 			q.pop();
 		}
 	}

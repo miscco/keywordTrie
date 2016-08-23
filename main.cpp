@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 
 	std::string test = "Test";
 
-	Trie.addString(test, true);
+	Trie.addString(test);
 	Trie.addStrings(strings);
 
 	auto results = Trie.parseText("ushershe");

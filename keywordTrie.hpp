@@ -72,7 +72,8 @@ public:
 	trie();
 	~trie() {for (node* N : trieNodes) delete N;}
 
-	void addString (const std::string &key, bool addFailure /*= true*/);
+	void addString (const std::string &key) {addString(key, true);}
+	void addString (const std::string &key, bool addFailure);
 	void addStrings(const std::set<std::string> &keyList);
 	void addStrings(const std::vector<std::string> &keyList);
 	std::vector<result> parseText(std::string text);
@@ -142,7 +143,7 @@ void trie::addFailureLinks() {
  * @param addFailure Flag to signal whether the failure links should immediately
  * be updated
  */
-void trie::addString (const std::string &key, bool addFailure = true) {
+void trie::addString (const std::string &key, bool addFailure) {
 	if (key.empty()) {
 		return;
 	}

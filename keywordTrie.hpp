@@ -1,13 +1,30 @@
-#ifndef KEYWORDTRIE_H
-#define KEYWORDTRIE_H
+/*
+* Copyright (C) 2016 Michael Schellenberger Costa.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
-#include <gvc.h>
-#include <iostream>
-#include <fstream>
+#ifndef KEYWORDTRIE_HPP
+#define KEYWORDTRIE_HPP
 #include <queue>
 #include <set>
 #include <stdexcept>
-#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -30,7 +47,8 @@ struct node {
 };
 
 /**
- * @brief The result struct storing the information about matches during a search
+ * @brief The result struct containing the information about matches during a
+ * search
  */
 struct result {
 	std::string keyword;			/**< The found keyword */
@@ -134,14 +152,14 @@ void trie::addString (const std::string &key, bool addFailure = true) {
 	}
 	if (current->id != -1) {
 		throw std::runtime_error(
-				"Attempted to add two identical strings to keyword tree.");
+					"Attempted to add two identical strings to the keyword tree.");
 	}
 	current->id = keywords.size();
 	keywords.push_back(result(key, keywords.size()));
 
 	if (addFailure) {
 		addFailureLinks();
-}
+	}
 }
 
 /**
@@ -236,4 +254,4 @@ node* trie::traverseFail (node *current, const char character) {
 	return temp;
 }
 } // namespace keywordTrie
-#endif // KEYWORDTRIE_H
+#endif // KEYWORDTRIE_HPP

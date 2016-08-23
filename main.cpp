@@ -15,25 +15,29 @@ int main(int argc, char** argv)
 	begin   = std::chrono::high_resolution_clock::now();
 	Trie.addString("AACGTTCA");
 	end     = std::chrono::high_resolution_clock::now();
-	std::cout << "Keyword trie construction took " << std::chrono::duration_cast<std::chrono::microseconds>( end - begin ).count() << " mu s\n";
+	std::cout << "Keyword trie construction took "
+			  << std::chrono::duration_cast<std::chrono::microseconds>( end - begin ).count()
+			  << " \u03BCs\n";
 
 	std::string querry, line;
 
 	std::ifstream myfile ("mgGenome.fasta");
-	if (myfile.is_open())
-	{
+	if (myfile.is_open()) {
 		getline (myfile,line);
-		while ( getline (myfile,line) )
-		{
+		while ( getline (myfile,line) ) {
 			querry += line;
 		}
 		myfile.close();
+	} else  {
+		throw std::runtime_error("Cannot find mgGenome.fasta!");
 	}
 
 	begin   = std::chrono::high_resolution_clock::now();
 	auto results = Trie.parseText(querry);
 	end     = std::chrono::high_resolution_clock::now();
-	std::cout << "Search took " << std::chrono::duration_cast<std::chrono::milliseconds>( end - begin ).count() << " ms\n";
+	std::cout << "Search took "
+			  << std::chrono::duration_cast<std::chrono::milliseconds>( end - begin ).count()
+			  << " ms\n";
 	for (auto res : results) {
 		std::cout << "Key: " << res.keyword
 				  << "\t Position: " << res.start <<std::endl;
@@ -55,12 +59,8 @@ int main(int argc, char** argv)
 	results = Trie2.parseText(querry);
 	std::cout << "Results: " << results.size() << std::endl;
 	for (auto res : results) {
-		std::cout << "Key: " << res.keyword <<std::endl;
-		std::cout << "KeyID: " << res.id <<std::endl;
-		std::cout << "Position: " << res.start <<std::endl;
-		std::cout << "Position: ushershe"<< std::endl;
-		std::cout << std::string(9+res.start, ' ')
-				  << std::string(res.keyword.size(), '^') <<std::endl;
+		std::cout << "Key: " << res.keyword
+				  << "\t Position: " << res.start <<std::endl;
 	}
 
 	return 0;

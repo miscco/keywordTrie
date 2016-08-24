@@ -32,15 +32,16 @@
 #include <vector>
 
 namespace keywordTrie {
+
 /**
  * @brief The node struct containing the information of a trie node.
  */
 template<typename CharType>
 struct Node {
 	typedef Node<CharType> node;
-	int id			= -1;			/**< Keyword id */
+	int id			= -1;			/**< Keyword index */
 	int depth		= 0;			/**< Depth in the trie*/
-	const CharType c= '\0';			/**< Character labelling the incoming edge */
+	CharType c		= '\0';			/**< Character labelling the incoming edge */
 	node *parent	= nullptr;		/**< Parent node */
 	node *failure	= nullptr;		/**< Failure link */
 	node *output	= nullptr;		/**< Output link */
@@ -48,19 +49,19 @@ struct Node {
 
 	explicit Node () {}
 	explicit Node (int d, const CharType character, node *par, node *root)
-		: depth(d), c(character), parent(par), failure(root) {}
+		: depth(d), c(character), parent(par), failure(root), output(root) {}
 };
 
 /**
  * @brief The result struct containing the information about matches during a
- * search
+ * search.
  */
 template<typename CharType>
 struct Result {
 	typedef std::basic_string<CharType> string_type;
 	typedef Result<CharType> result;
 	string_type keyword;			/**< The found keyword */
-	int			id;					/**< The id of the keyword in the keyword list*/
+	int			id;					/**< The index of the keyword in the keyword list*/
 	int			start;				/**< The starting position of the match */
 	int			end;				/**< The end position of the match */
 
@@ -72,7 +73,7 @@ struct Result {
 };
 
 /**
- * @brief The trie class representing the keyword trie
+ * @brief The trie class representing the keyword trie.
  */
 template<typename CharType>
 class basic_trie
@@ -83,9 +84,10 @@ public:
 	typedef std::basic_string<CharType> string_type;
 
 private:
-	node				*root = nullptr;	/**< The root node */
-	std::vector<node*>	trieNodes;			/**< Container of the node pointers */
-	std::vector<result> keywords;			/**< Container of the result stubs */
+	node				*root = nullptr;		/**< The root node */
+	std::vector<node*>	trieNodes;				/**< Container of the node pointers */
+	std::vector<result> keywords;				/**< Container of the result stubs */
+	bool				caseSensitive = true;	/**< Flag for case sensitivity */
 
 public:
 	/**
@@ -107,14 +109,14 @@ public:
 	 * @brief addString Insert a new keyword into the keyword trie.
 	 * @param key The new keyword to be inserted.
 	 * @param addFailure Flag to signal whether the failure links should
-	 * immediately be updated
+	 * immediately be updated.
 	 */
 	void addString (const string_type &key, bool addFailure) {
 		if (key.empty()) {
 			return;
 		}
 		node *current = root;
-		for (const CharType character : key) {
+		for (CharType character : key) {
 			current = findChild(current, character, true);
 		}
 		if (current->id != -1) {
@@ -136,7 +138,7 @@ public:
 
 	/**
 	 * @brief addStrings Wrapper around addString(string_type, bool) to add a
-	 * set of strings
+	 * set of strings.
 	 * @param keyList The set containing the keys.
 	 */
 	void addString(const std::set<string_type> &keyList) {
@@ -148,7 +150,7 @@ public:
 
 	/**
 	 * @brief addStrings Wrapper around addString(string_type, bool) to add a
-	 * vector of strings
+	 * vector of strings.
 	 * @param keyList The vector containing the keys.
 	 */
 	void addString(const std::vector<string_type> &keyList) {
@@ -159,9 +161,9 @@ public:
 	}
 
 	/**
-	 * @brief parseText Parses a text with the trie
-	 * @param text The text to be parsed
-	 * @return Returns a vector with all matches
+	 * @brief parseText Parses a text with the trie.
+	 * @param text The text to be parsed.
+	 * @return Returns a vector with all matches.
 	 */
 	std::vector<result> parseText (string_type text) {
 		std::vector<result> results;
@@ -184,9 +186,21 @@ public:
 		return results;
 	}
 
+	/**
+	 * @brief setCaseSensitivity Set the case sensitivity flag.
+	 * @param flag The new flag.
+	 */
+	void setCaseSensitivity (bool flag) {
+		caseSensitive = flag;
+		if (!caseSensitive && !keywords.empty()) {
+			throw std::runtime_error("Switching case sensitivity with existing "
+									 "trie might lead to invalid results");
+		}
+	}
+
 private:
 	/**
-	 * @brief addChild Add a child node to the trie
+	 * @brief addChild Add a child node to the trie.
 	 * @param parrent The pointer to the parrent node of the new one.
 	 * @param character The character on the edge to the new node.
 	 * @return The pointer to the newly created node.
@@ -198,31 +212,33 @@ private:
 	}
 
 	/**
-	 * @brief findChild Searches for a child node with given character
-	 * @param current The pointer to the current node
-	 * @param character The character that is searched
-	 * @param addWord Flag sign to decide whether a new node should be added
+	 * @brief findChild Searches for a child node with given character or adds one.
+	 * @param current The pointer to the current node.
+	 * @param character The character that is searched.
+	 * @param addWord Flag sign to decide whether a new node should be added.
 	 * @return The pointer to the matching node (possibly after failure links),
-	 * root or the newly created one
+	 * root or the newly created one.
 	 */
 	node* findChild (node *current, const CharType character, bool addWord) {
 		for (node *child : current->children) {
-			if (child->c == character) {
+			if (caseSensitive ? (child->c == character) :
+								(std::tolower(child->c) == std::tolower(character))) {
 				return child;
 			}
 		}
 		if (addWord) {
-			return addChild(current, character);
+			return caseSensitive ? addChild(current, character) :
+								   addChild(current, std::tolower(character));
 		} else {
 			return traverseFail(current, character);
 		}
 	}
 
 	/**
-	 * @brief traverseFail traverse the failure links during a search
-	 * @param current The original node
-	 * @param character The character that is beeing searched
-	 * @return The pointer to the matching node after a failure link or root
+	 * @brief traverseFail Traverse the failure links during a search.
+	 * @param current The original node.
+	 * @param character The character that is beeing searched.
+	 * @return The pointer to the matching node after a failure link or root->
 	 */
 	node* traverseFail (node *current, const CharType character) {
 		node *temp = current->failure;

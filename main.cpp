@@ -8,7 +8,7 @@ typedef std::chrono::high_resolution_clock::time_point timer;
 
 int main(int argc, char** argv)
 {
-	keywordTrie::trie Trie;
+	keywordTrie::trie Trie, Trie2, Trie3;
 	timer begin, end;
 
 
@@ -47,16 +47,24 @@ int main(int argc, char** argv)
 	const std::set<std::string> patterns {
 		"he",
 		"she",
-		"her",
+		"Her",
 		"hers",
 		"Help",
 		"we"
 	};
 
 	querry = "ushershe";
-	keywordTrie::trie Trie2;
 	Trie2.addString(patterns);
 	results = Trie2.parseText(querry);
+	std::cout << "Results: " << results.size() << std::endl;
+	for (auto res : results) {
+		std::cout << "Key: " << res.keyword
+				  << "\t Position: " << res.start <<std::endl;
+	}
+
+	Trie3.setCaseSensitivity(false);
+	Trie3.addString(patterns);
+	results = Trie3.parseText(querry);
 	std::cout << "Results: " << results.size() << std::endl;
 	for (auto res : results) {
 		std::cout << "Key: " << res.keyword

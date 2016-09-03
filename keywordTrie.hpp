@@ -48,7 +48,7 @@ struct Node {
     std::vector<node*> children;    /**< Child nodes */
 
     explicit Node () {}
-    explicit Node (int d, const CharType character, node *par, node *root)
+    explicit Node (int d, const CharType &character, node *par, node *root)
 	: depth(d), c(character), parent(par), failure(root), output(root) {}
 };
 
@@ -116,8 +116,9 @@ public:
 	    return;
 	}
 	node *current = root;
-	for (CharType character : key) {
-	    current = findChild(current, character, true);
+	for (const CharType &character : key) {
+	    current = addChild(current, caseSensitive ? character :
+							std::tolower(character));
 	}
 	if (current->id != -1) {
 	    throw std::runtime_error(
@@ -130,14 +131,15 @@ public:
 	    addFailureLinks();
 	}
     }
+
     /**
-	 * @brief addString Wrapper around addString(string_type, bool).
-	 * @param key The new keyword to be inserted.
-	 */
+     * @brief addString Wrapper around addString(string_type, bool).
+     * @param key The new keyword to be inserted.
+     */
     void addString (const string_type &key) {addString(key, true);}
 
     /**
-     * @brief addStrings Wrapper around addString(string_type, bool) to add a
+     * @brief addString Wrapper around addString(string_type, bool) to add a
      * set of strings.
      * @param keyList The set containing the keys.
      */
@@ -149,7 +151,7 @@ public:
     }
 
     /**
-     * @brief addStrings Wrapper around addString(string_type, bool) to add a
+     * @brief addString Wrapper around addString(string_type, bool) to add a
      * vector of strings.
      * @param keyList The vector containing the keys.
      */
@@ -165,14 +167,15 @@ public:
      * @param text The text to be parsed.
      * @return Returns a vector with all matches.
      */
-    std::vector<result> parseText (string_type text) {
+    std::vector<result> parseText (string_type text) const {
 	std::vector<result> results;
 	if (text.empty()) {
 	    return results;
 	}
 	node *current= root;
 	for (unsigned i=0; i < text.size(); i++) {
-	    current = findChild(current, text.at(i), false);
+	    current = findChild(current, caseSensitive ? text.at(i) :
+							 std::tolower(text.at(i)));
 	    if (current->id != -1) {
 		results.push_back(result(keywords.at(current->id), i));
 	    }
@@ -205,52 +208,15 @@ private:
      * @param character The character on the edge to the new node.
      * @return The pointer to the newly created node.
      */
-    node* addChild (node *parent, const CharType character) {
-	trieNodes.push_back(new node(parent->depth+1, character, parent, root));
-	parent->children.push_back(trieNodes.back());
-	return trieNodes.back();
-    }
-
-    /**
-     * @brief findChild Searches for a child node with given character or adds one.
-     * @param current The pointer to the current node.
-     * @param character The character that is searched.
-     * @param addWord Flag sign to decide whether a new node should be added.
-     * @return The pointer to the matching node (possibly after failure links),
-     * root or the newly created one.
-     */
-    node* findChild (node *current, const CharType character, bool addWord) {
+    node* addChild (node *current, const CharType &character) {
 	for (node *child : current->children) {
-	    if (caseSensitive ? (child->c == character) :
-		(std::tolower(child->c) == std::tolower(character))) {
+	    if (child->c == character) {
 		return child;
 	    }
 	}
-	if (addWord) {
-	    return caseSensitive ? addChild(current, character) :
-				   addChild(current, std::tolower(character));
-	} else {
-	    return traverseFail(current, character);
-	}
-    }
-
-    /**
-     * @brief traverseFail Traverse the failure links during a search.
-     * @param current The original node.
-     * @param character The character that is beeing searched.
-     * @return The pointer to the matching node after a failure link or root->
-     */
-    node* traverseFail (node *current, const CharType character) {
-	node *temp = current->failure;
-	while (temp != root) {
-	    for (node *failchild : temp->children) {
-		if (failchild->c == character) {
-		    return failchild;
-		}
-	    }
-	    temp = temp->failure;
-	}
-	return temp;
+	trieNodes.push_back(new node(current->depth+1,character, current, root));
+	current->children.push_back(trieNodes.back());
+	return trieNodes.back();
     }
 
     /**
@@ -287,6 +253,47 @@ private:
 	    temp->output = out;
 	    q.pop();
 	}
+    }
+
+    /**
+     * @brief findChild Searches for a child node with given character or adds one.
+     * @param current The pointer to the current node.
+     * @param character The character that is searched.
+     * @param addWord Flag sign to decide whether a new node should be added.
+     * @return The pointer to the matching node (possibly after failure links),
+     * root or the newly created one.
+     */
+    node* findChild (node *current, const CharType &character) const {
+	for (node *child : current->children) {
+	    if (child->c == character) {
+		return child;
+	    }
+	}
+	return traverseFail(current, character);
+    }
+
+    /**
+     * @brief traverseFail Traverse the failure links during a search.
+     * @param current The original node.
+     * @param character The character that is beeing searched.
+     * @return The pointer to the matching node after a failure link or root->
+     */
+    node* traverseFail (node *current, const CharType &character) const {
+	node *temp = current->failure;
+	while (temp != root) {
+	    for (node *failchild : temp->children) {
+		if (failchild->c == character) {
+		    return failchild;
+		}
+	    }
+	    temp = temp->failure;
+	}
+	for (node *rootchild : root->children) {
+	    if (rootchild->c == character) {
+		return rootchild;
+	    }
+	}
+	return root;
     }
 };
 

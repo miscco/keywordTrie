@@ -42,7 +42,7 @@ struct Node {
     int id		= -1;	    /**< Keyword index */
     int depth		= 0;	    /**< Depth in the trie*/
     CharType c		= '\0';	    /**< Character labelling the incoming edge */
-    node *parent	= nullptr;  /**< Parent node */
+    const node *parent	= nullptr;  /**< Parent node */
     node *failure	= nullptr;  /**< Failure link */
     node *output	= nullptr;  /**< Output link */
     std::vector<node*> children;    /**< Child nodes */

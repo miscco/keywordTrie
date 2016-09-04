@@ -40,7 +40,7 @@ template<typename CharType>
 struct Node {
     typedef Node<CharType> node;
     int id		= -1;	    /**< Keyword index */
-    int depth		= 0;	    /**< Depth in the trie*/
+    unsigned depth	= 0;	    /**< Depth in the trie*/
     CharType c		= '\0';	    /**< Character labelling the incoming edge */
     const node *parent	= nullptr;  /**< Parent node */
     node *failure	= nullptr;  /**< Failure link */
@@ -61,14 +61,14 @@ struct Result {
     typedef std::basic_string<CharType> string_type;
     typedef Result<CharType> result;
     string_type	keyword;    /**< The found keyword */
-    int		id;	    /**< The index of the keyword in the keyword list*/
-    int		start;	    /**< The starting position of the match */
-    int		end;	    /**< The end position of the match */
+    unsigned	id;	    /**< The index of the keyword in the keyword list*/
+    unsigned	start;	    /**< The starting position of the match */
+    unsigned	end;	    /**< The end position of the match */
 
     explicit Result (const string_type &key, int id)
 	: keyword(key), id(id) {}
     explicit Result (const result &res, int endPos)
-	: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+2),
+	: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+1),
 	  end(endPos) {}
 };
 

@@ -60,7 +60,7 @@ template<typename CharType>
 struct Result {
     typedef std::basic_string<CharType> string_type;
     typedef Result<CharType> result;
-    string_type keyword;    /**< The found keyword */
+    string_type	keyword;    /**< The found keyword */
     int		id;	    /**< The index of the keyword in the keyword list*/
     int		start;	    /**< The starting position of the match */
     int		end;	    /**< The end position of the match */

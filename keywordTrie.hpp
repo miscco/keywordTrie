@@ -40,15 +40,15 @@ template<typename CharType>
 struct Node {
     typedef Node<CharType> node;
     int id		= -1;	    /**< Keyword index */
-    unsigned depth	= 0;	    /**< Depth in the trie*/
-    CharType c		= '\0';	    /**< Character labelling the incoming edge */
+    const unsigned depth= 0;	    /**< Depth in the trie*/
+    const CharType c	= '\0';	    /**< Character labelling the incoming edge */
     const node *parent	= nullptr;  /**< Parent node */
     node *failure	= nullptr;  /**< Failure link */
     node *output	= nullptr;  /**< Output link */
     std::vector<node*> children;    /**< Child nodes */
 
     explicit Node () {}
-    explicit Node (int d, const CharType &character, node *par, node *root)
+    explicit Node (const unsigned d, const CharType &character, const node *par, node *root)
 	: depth(d), c(character), parent(par), failure(root), output(root) {}
 };
 
@@ -65,9 +65,9 @@ struct Result {
     unsigned	start;	    /**< The starting position of the match */
     unsigned	end;	    /**< The end position of the match */
 
-    explicit Result (const string_type &key, int id)
+    explicit Result (const string_type &key, const unsigned id)
 	: keyword(key), id(id) {}
-    explicit Result (const result &res, int endPos)
+    explicit Result (const result &res, const unsigned endPos)
 	: keyword(res.keyword), id(res.id), start(endPos-res.keyword.size()+1),
 	  end(endPos) {}
 };
@@ -232,8 +232,8 @@ private:
 		q.push(child);
 	    }
 	    /* A failure link with just one less charater is the optimum and will
-			 * never change.
-			 */
+	     * never change.
+	     */
 	    if (temp->failure->depth < temp->depth - 1) {
 		for (node *failchild : temp->parent->failure->children) {
 		    if (failchild->c == temp->c) {

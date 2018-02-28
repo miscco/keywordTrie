@@ -40,17 +40,19 @@ namespace keywordTrie {
 template<typename CharType>
 struct Node {
     using node = Node<CharType>;
+    using nodePtr = std::weak_ptr<node>;
+    
     int             id		= -1;	/**< Keyword index */
     const unsigned  depth= 0;	    /**< Depth in the trie*/
     const CharType  c	= '\0';	    /**< Character labelling the incoming edge */
-    const node*     parent;		    /**< Parent node */
-    node*           failure;		/**< Failure link */
-    node*           output;		    /**< Output link */
-    std::vector<node*> children;    /**< Child nodes */
+    const nodePtr   parent;		    /**< Parent node */
+    nodePtr         failure;		/**< Failure link */
+    nodePtr         output;		    /**< Output link */
+    std::vector<nodePtr> children;  /**< Child nodes */
 
     explicit Node ()
         : parent(this), failure(this), output(this) {}
-    explicit Node (const unsigned d, const CharType &character, const node *par, const node *root)
+    explicit Node (const unsigned d, const CharType &character, const nodePtr par, const nodePtr root)
         : depth(d), c(character), parent(par), failure(root), output(root) {}
 };
 
@@ -85,13 +87,14 @@ public:
     using node = Node<CharType>;
     using result = Result<CharType>;
     using string_type = std::basic_string<CharType>;
-    using nodeptr = std::unique_ptr<Node<CharType>>;
+    using nodePtr = std::weak_ptr<node>;
+    using trieNode = std::shared_ptr<node>;
 
 private:
-    node *root = nullptr;           /**< The root node */
-    std::vector<nodeptr>trieNodes;  /**< Container of the node pointers */
-    std::vector<result> keywords;   /**< Container of the result stubs */
-    bool caseSensitive = true;	    /**< Flag for case sensitivity */
+    nodePtr root;                     /**< The root node */
+    std::vector<trieNode> trieNodes;  /**< Container of the node pointers */
+    std::vector<result> keywords;     /**< Container of the result stubs */
+    bool caseSensitive = true;	      /**< Flag for case sensitivity */
 
 public:
     /**
@@ -99,7 +102,7 @@ public:
      */
     basic_trie() {
         trieNodes.emplace_back();
-        root = trieNodes.back().get();
+        root = trieNodes.back();
     }
 
     /**
@@ -112,7 +115,7 @@ public:
         if (key.empty()) {
             return;
         }
-        node *current = root;
+        nodePtr current = root;
         for (const CharType &character : key) {
             current = addChild(current, caseSensitive ? character :
                                                         std::tolower(character));
@@ -163,7 +166,7 @@ public:
         if (text.empty()) {
             return results;
         }
-        node *current= root;
+        nodePtr current = root;
         for (size_t i=0; i < text.size(); i++) {
             current = findChild(current, caseSensitive ? text.at(i)
                                                        : std::tolower(text.at(i)));
@@ -171,7 +174,7 @@ public:
                 results.emplace_back(keywords.at(current->id), i);
             }
             /* Process the output links for possible additional matches */
-            node *temp = current->output;
+            nodePtr temp = current->output;
             while (temp != root) {
                 results.emplace_back(keywords.at(temp->id), i);
                 temp = temp->output;
@@ -199,7 +202,7 @@ private:
      * @param character The character on the edge to the new node.
      * @return The pointer to the newly created node.
      */
-    node* addChild (node *current, const CharType &character) {
+    nodePtr addChild (nodePtr current, const CharType &character) {
         for (auto&& child : current->children) {
             if (child->c == character) {
                 return child;
@@ -209,8 +212,8 @@ private:
                                character,
                                current,
                                root);
-        current->children.emplace_back(trieNodes.back().get());
-        return trieNodes.back().get();
+        current->children.emplace_back(trieNodes.back());
+        return trieNodes.back();
     }
 
     /**
@@ -218,10 +221,10 @@ private:
      * failure links.
      */
     void addFailureLinks() {
-        std::queue<node*> q;
+        std::queue<nodePtr> q;
         q.push(root);
         while (!q.empty()) {
-            node *temp = q.front();
+            nodePtr temp = q.front();
             for (auto&& child : temp->children) {
                 q.push(child);
             }
@@ -237,7 +240,7 @@ private:
             }
 
             /* Process the failure links for possible additional matches */
-            node *out = temp->failure;
+            nodePtr out = temp->failure;
             while (out != root) {
                 if (out->id != -1) {
                     break;
@@ -257,7 +260,7 @@ private:
      * @return The pointer to the matching node (possibly after failure links),
      * root or the newly created one.
      */
-    node* findChild (node *current, const CharType &character) const {
+    nodePtr findChild (nodePtr current, const CharType &character) const {
         for (auto&& child : current->children) {
             if (child->c == character) {
                 return child;
@@ -272,8 +275,8 @@ private:
      * @param character The character that is beeing searched.
      * @return The pointer to the matching node after a failure link or root->
      */
-    node* traverseFail (node *current, const CharType &character) const {
-        node *temp = current->failure;
+    nodePtr traverseFail (nodePtr current, const CharType &character) const {
+        nodePtr temp = current->failure;
         while (temp != root) {
             for (auto&& failchild : temp->children) {
                 if (failchild->c == character) {

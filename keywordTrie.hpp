@@ -37,23 +37,22 @@ namespace keywordTrie {
 /**
  * @brief The node struct containing the information of a trie node.
  */
-template<typename CharType>
+template<typename CharType, int N>
 struct Node {
-    using node = Node<CharType>;
-    using nodePtr = std::weak_ptr<node>;
+    using node = Node<CharType, N>;
     
-    int             id		= -1;	/**< Keyword index */
-    const unsigned  depth= 0;	    /**< Depth in the trie*/
-    const CharType  c	= '\0';	    /**< Character labelling the incoming edge */
-    const nodePtr   parent;		    /**< Parent node */
-    nodePtr         failure;		/**< Failure link */
-    nodePtr         output;		    /**< Output link */
-    std::vector<nodePtr> children;  /**< Child nodes */
+    int       id		= -1;	/**< Keyword index */
+    unsigned  depth= 0;	    /**< Depth in the trie*/
+    CharType  c	= '\0';	    /**< Character labelling the incoming edge */
+    node*     parent;		    /**< Parent node */
+    node*     failure;		/**< Failure link */
+    node*     output;		    /**< Output link */
+    std::vector<node> children;   /**< Child nodes */
 
     explicit Node ()
-        : parent(this), failure(this), output(this) {}
-    explicit Node (const unsigned d, const CharType &character, const nodePtr par, const nodePtr root)
-        : depth(d), c(character), parent(par), failure(root), output(root) {}
+        : parent(this), failure(this), output(this) {children.reserve(N);}
+    explicit Node (const unsigned d, const CharType &character, const node* par, const node* root)
+        : depth(d), c(character), parent(par), failure(root), output(root) {children.reserve(N);}
 };
 
 /**
@@ -80,31 +79,20 @@ struct Result {
 /**
  * @brief The trie class representing the keyword trie.
  */
-template<typename CharType>
+template<typename CharType, int N>
 class basic_trie
 {
 public:
-    using node = Node<CharType>;
+    using node = Node<CharType, N>;
     using result = Result<CharType>;
     using string_type = std::basic_string<CharType>;
-    using nodePtr = std::weak_ptr<node>;
-    using trieNode = std::shared_ptr<node>;
 
 private:
-    nodePtr root;                     /**< The root node */
-    std::vector<trieNode> trieNodes;  /**< Container of the node pointers */
+    node root;                     /**< The root node */
     std::vector<result> keywords;     /**< Container of the result stubs */
     bool caseSensitive = true;	      /**< Flag for case sensitivity */
 
 public:
-    /**
-     * @brief trie Initializes the trie structure with its root node.
-     */
-    basic_trie() {
-        trieNodes.emplace_back();
-        root = trieNodes.back();
-    }
-
     /**
      * @brief addString Insert a new keyword into the keyword trie.
      * @param key The new keyword to be inserted.
@@ -115,16 +103,16 @@ public:
         if (key.empty()) {
             return;
         }
-        nodePtr current = root;
+        node current = root;
         for (const CharType &character : key) {
             current = addChild(current, caseSensitive ? character :
                                                         std::tolower(character));
         }
-        if (current->id != -1) {
+        if (current.id != -1) {
             throw std::runtime_error(
                         "Attempted to add two identical strings to the keyword tree.");
         }
-        current->id = keywords.size();
+        current.id = keywords.size();
         keywords.emplace_back(key, keywords.size());
 
         if (addFailure) {
@@ -166,16 +154,16 @@ public:
         if (text.empty()) {
             return results;
         }
-        nodePtr current = root;
+        node current = root;
         for (size_t i=0; i < text.size(); i++) {
             current = findChild(current, caseSensitive ? text.at(i)
                                                        : std::tolower(text.at(i)));
-            if (current->id != -1) {
-                results.emplace_back(keywords.at(current->id), i);
+            if (current.id != -1) {
+                results.emplace_back(keywords.at(current.id), i);
             }
             /* Process the output links for possible additional matches */
-            nodePtr temp = current->output;
-            while (temp != root) {
+            node* temp = current.output;
+            while (temp != &root) {
                 results.emplace_back(keywords.at(temp->id), i);
                 temp = temp->output;
             }
@@ -202,18 +190,17 @@ private:
      * @param character The character on the edge to the new node.
      * @return The pointer to the newly created node.
      */
-    nodePtr addChild (nodePtr current, const CharType &character) {
-        for (auto&& child : current->children) {
-            if (child->c == character) {
+    node& addChild (node& current, const CharType &character) {
+        for (auto&& child : current.children) {
+            if (child.c == character) {
                 return child;
             }
         }
-        trieNodes.emplace_back(current->depth+1,
-                               character,
-                               current,
-                               root);
-        current->children.emplace_back(trieNodes.back());
-        return trieNodes.back();
+        current.children.emplace_back(current->depth+1,
+                                      character,
+                                      current,
+                                      root);
+        return current.children.back();
     }
 
     /**
@@ -221,33 +208,33 @@ private:
      * failure links.
      */
     void addFailureLinks() {
-        std::queue<nodePtr> q;
+        std::queue<node> q;
         q.push(root);
         while (!q.empty()) {
-            nodePtr temp = q.front();
-            for (auto&& child : temp->children) {
+            node temp = q.front();
+            for (auto&& child : temp.children) {
                 q.push(child);
             }
             /* A failure link with just one less charater is the optimum and will
              * never change.
              */
-            if (temp->failure->depth < temp->depth - 1) {
-                for (auto&& failchild : temp->parent->failure->children) {
-                    if (failchild->c == temp->c) {
-                        temp->failure = failchild;
+            if (temp.failure->depth < temp.depth - 1) {
+                for (auto&& failchild : temp.parent->failure->children) {
+                    if (failchild.c == temp.c) {
+                        temp.failure = failchild;
                     }
                 }
             }
 
             /* Process the failure links for possible additional matches */
-            nodePtr out = temp->failure;
+            node* out = temp.failure;
             while (out != root) {
                 if (out->id != -1) {
                     break;
                 }
                 out = out->failure;
             }
-            temp->output = out;
+            temp.output = out;
             q.pop();
         }
     }
@@ -260,9 +247,9 @@ private:
      * @return The pointer to the matching node (possibly after failure links),
      * root or the newly created one.
      */
-    nodePtr findChild (nodePtr current, const CharType &character) const {
-        for (auto&& child : current->children) {
-            if (child->c == character) {
+    node& findChild (node& current, const CharType &character) const {
+        for (auto&& child : current.children) {
+            if (child.c == character) {
                 return child;
             }
         }
@@ -275,18 +262,18 @@ private:
      * @param character The character that is beeing searched.
      * @return The pointer to the matching node after a failure link or root->
      */
-    nodePtr traverseFail (nodePtr current, const CharType &character) const {
-        nodePtr temp = current->failure;
-        while (temp != root) {
+    node& traverseFail (node& current, const CharType &character) const {
+        node* temp = current.failure;
+        while (temp != &root) {
             for (auto&& failchild : temp->children) {
-                if (failchild->c == character) {
+                if (failchild.c == character) {
                     return failchild;
                 }
             }
             temp = temp->failure;
         }
-        for (auto&& rootchild : root->children) {
-            if (rootchild->c == character) {
+        for (auto&& rootchild : root.children) {
+            if (rootchild.c == character) {
                 return rootchild;
             }
         }
@@ -294,8 +281,8 @@ private:
     }
 };
 
-typedef basic_trie<char>     trie;
-typedef basic_trie<wchar_t> wtrie;
+typedef basic_trie<char,4>     trie;
+typedef basic_trie<wchar_t,4> wtrie;
 
 } // namespace keywordTrie
 #endif // KEYWORDTRIE_HPP

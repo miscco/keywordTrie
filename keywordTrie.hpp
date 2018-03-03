@@ -41,17 +41,17 @@ template<typename CharType, int N>
 struct Node {
     using node = Node<CharType, N>;
     
-    int       id		= -1;	/**< Keyword index */
-    unsigned  depth= 0;	    /**< Depth in the trie*/
-    CharType  c	= '\0';	    /**< Character labelling the incoming edge */
-    node*     parent;		    /**< Parent node */
+    int       id	= -1;	/**< Keyword index */
+    unsigned  depth	= 0;	/**< Depth in the trie*/
+    CharType  c	= '\0';	/**< Character labelling the incoming edge */
+    node*     parent;		/**< Parent node */
     node*     failure;		/**< Failure link */
-    node*     output;		    /**< Output link */
-    std::vector<node> children;   /**< Child nodes */
+    node*     output;		/**< Output link */
+    std::vector<node> children;	/**< Child nodes */
 
     explicit Node ()
         : parent(this), failure(this), output(this) {children.reserve(N);}
-    explicit Node (const unsigned d, const CharType &character, const node* par, const node* root)
+    explicit Node (const unsigned d, const CharType &character, node* par, node* root)
         : depth(d), c(character), parent(par), failure(root), output(root) {children.reserve(N);}
 };
 
@@ -190,16 +190,16 @@ private:
      * @param character The character on the edge to the new node.
      * @return The pointer to the newly created node.
      */
-    node& addChild (node& current, const CharType &character) {
+    node addChild (node& current, const CharType &character) {
         for (auto&& child : current.children) {
             if (child.c == character) {
                 return child;
             }
         }
-        current.children.emplace_back(current->depth+1,
+        current.children.emplace_back(current.depth+1,
                                       character,
-                                      current,
-                                      root);
+                                      &current,
+                                      &root);
         return current.children.back();
     }
 
@@ -221,14 +221,14 @@ private:
             if (temp.failure->depth < temp.depth - 1) {
                 for (auto&& failchild : temp.parent->failure->children) {
                     if (failchild.c == temp.c) {
-                        temp.failure = failchild;
+                        temp.failure = &failchild;
                     }
                 }
             }
 
             /* Process the failure links for possible additional matches */
             node* out = temp.failure;
-            while (out != root) {
+            while (out != &root) {
                 if (out->id != -1) {
                     break;
                 }
@@ -247,7 +247,7 @@ private:
      * @return The pointer to the matching node (possibly after failure links),
      * root or the newly created one.
      */
-    node& findChild (node& current, const CharType &character) const {
+    node findChild (node& current, const CharType &character) const {
         for (auto&& child : current.children) {
             if (child.c == character) {
                 return child;
@@ -262,7 +262,7 @@ private:
      * @param character The character that is beeing searched.
      * @return The pointer to the matching node after a failure link or root->
      */
-    node& traverseFail (node& current, const CharType &character) const {
+    node traverseFail (node& current, const CharType &character) const {
         node* temp = current.failure;
         while (temp != &root) {
             for (auto&& failchild : temp->children) {

@@ -93,13 +93,15 @@ private:
     nodePtr root;                     /**< The root node */
     std::vector<nodePtr> trieNodes;   /**< Container of the node pointers */
     std::vector<result> keywords;     /**< Container of the result stubs */
-    bool caseSensitive = true;	      /**< Flag for case sensitivity */
+    const bool caseSensitive = true;  /**< Flag for case sensitivity */
 
 public:
     /**
      * @brief trie Initializes the trie structure with its root node.
      */
-    basic_trie() {
+    basic_trie(bool CaseSensitive = true)
+        : caseSensitive(CaseSensitive)
+    {
         root = std::make_shared<node>();
         root->parent = root;
         root->failure = root;
@@ -184,19 +186,7 @@ public:
         }
         return results;
     }
-
-    /**
-     * @brief setCaseSensitivity Set the case sensitivity flag.
-     * @param flag The new flag.
-     */
-    void setCaseSensitivity (bool flag) {
-        caseSensitive = flag;
-        if (!caseSensitive && !keywords.empty()) {
-            throw std::runtime_error("Switching case sensitivity with existing "
-                                     "trie might lead to invalid results");
-        }
-    }
-
+    
 private:
     /**
      * @brief addChild Add a child node to the trie.

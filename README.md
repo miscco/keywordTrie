@@ -20,10 +20,9 @@ The output structure features the following information.
 - The ID of the keyword based on its addition to the keyword trie
 - The start and end position of the match
 
-Similarly a case insensitive search can be performed. However, after inserting the first word the code will throw a runtime_error if the case sensitivity is changed, as that might invalidate the keyword trie.
+Similarly a case insensitive search can be performed.
 ```cpp
-keywordTrie::trie trie;
-trie.setCaseSensitive(false);
+keywordTrie::trie trie(false);
 trie.addString("hers");
 trie.addString("his");
 trie.addString("she");

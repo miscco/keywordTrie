@@ -103,7 +103,7 @@ public:
         root = std::make_shared<node>();
         root->parent = root;
         root->failure = root;
-        root->out = root;
+        root->output = root;
         trieNodes.push_back(root);
     }
 

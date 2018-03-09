@@ -25,6 +25,7 @@
 
 #ifndef KEYWORDTRIE_HPP
 #define KEYWORDTRIE_HPP
+#include <cctype>
 #include <memory>
 #include <queue>
 #include <set>
@@ -40,18 +41,17 @@ namespace keywordTrie {
 template<typename CharType>
 struct Node {
     using node = Node<CharType>;
-    using nodePtr = std::weak_ptr<node>;
+    using nodePtr = std::shared_ptr<node>;
     
     int             id		= -1;	/**< Keyword index */
     const unsigned  depth= 0;	    /**< Depth in the trie*/
     const CharType  c	= '\0';	    /**< Character labelling the incoming edge */
-    const nodePtr   parent;		    /**< Parent node */
+    nodePtr         parent;		    /**< Parent node */
     nodePtr         failure;		/**< Failure link */
     nodePtr         output;		    /**< Output link */
     std::vector<nodePtr> children;  /**< Child nodes */
 
-    explicit Node ()
-        : parent(this), failure(this), output(this) {}
+    explicit Node () {}
     explicit Node (const unsigned d, const CharType &character, const nodePtr par, const nodePtr root)
         : depth(d), c(character), parent(par), failure(root), output(root) {}
 };
@@ -87,12 +87,11 @@ public:
     using node = Node<CharType>;
     using result = Result<CharType>;
     using string_type = std::basic_string<CharType>;
-    using nodePtr = std::weak_ptr<node>;
-    using trieNode = std::shared_ptr<node>;
+    using nodePtr = std::shared_ptr<node>;
 
 private:
     nodePtr root;                     /**< The root node */
-    std::vector<trieNode> trieNodes;  /**< Container of the node pointers */
+    std::vector<nodePtr> trieNodes;   /**< Container of the node pointers */
     std::vector<result> keywords;     /**< Container of the result stubs */
     bool caseSensitive = true;	      /**< Flag for case sensitivity */
 
@@ -101,8 +100,11 @@ public:
      * @brief trie Initializes the trie structure with its root node.
      */
     basic_trie() {
-        trieNodes.emplace_back();
-        root = trieNodes.back();
+        root = std::make_shared<node>();
+        root->parent = root;
+        root->failure = root;
+        root->out = root;
+        trieNodes.push_back(root);
     }
 
     /**
@@ -208,10 +210,10 @@ private:
                 return child;
             }
         }
-        trieNodes.emplace_back(current->depth+1,
-                               character,
-                               current,
-                               root);
+        trieNodes.push_back(std::make_shared<node>(current->depth+1,
+                                                   character,
+                                                   current,
+                                                   root));
         current->children.emplace_back(trieNodes.back());
         return trieNodes.back();
     }

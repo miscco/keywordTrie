@@ -2,7 +2,7 @@
 
 This library implements a simple trie based search algorithm for multiple keywords in a given text.  Due to failure and output links, the algorithm is very efficient, only traversing the text once.
 
-The code is inspired by a C-based implementation from Bernhard Haubold (http://guanine.evolbio.mpg.de/homePage/index.html) and an implementation of the Aho-Corasick algorithm of Christopher Gilbert (https://github.com/blockchaindev/aho_corasick). It requires the C++11 standard and works with both char and wchar string types.
+The code is inspired by a C-based implementation from Bernhard Haubold (http://guanine.evolbio.mpg.de/homePage/index.html) and an implementation of the Aho-Corasick algorithm of Christopher Gilbert (https://github.com/blockchaindev/aho_corasick).
 
 As an example the following code will create a simple keyword trie and use it to parse a given text.
 ```cpp

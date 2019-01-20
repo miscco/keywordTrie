@@ -6,7 +6,7 @@ The code is inspired by a C-based implementation from Bernhard Haubold (http://g
 
 As an example the following code will create a simple keyword trie and use it to parse a given text.
 ```cpp
-keywordTrie::trie trie;
+miscco::keyword_trie trie;
 trie.addString("hers");
 trie.addString("his");
 trie.addString("she");
@@ -22,7 +22,7 @@ The output structure features the following information.
 
 Similarly a case insensitive search can be performed.
 ```cpp
-keywordTrie::trie trie(false);
+miscco::keyword_trie trie<false>;
 trie.addString("hers");
 trie.addString("his");
 trie.addString("she");
